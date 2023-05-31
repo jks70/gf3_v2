@@ -89,6 +89,11 @@ def bitsFromTiff(image_name):
     
     return np.array([bity for bytey in bin_byte_array for bity in bytey]).astype(int)
 
+def bitsFromTxt(file):
+    f = open(file, 'rb')
+    content = f.read()
+    return np.array([int(i) for i in ''.join([(format(byte, '08b')) for byte in content])])
+
 
 def repetionCode(binary, k=3):
     return np.array([element for element in binary for i in range(k)])
