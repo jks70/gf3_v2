@@ -3,6 +3,7 @@
 
 import numpy as np
 import simpleaudio as sa
+from scipy.signal import chirp
 import pyaudio
 import sounddevice as sd
 from scipy.io.wavfile import write, read
@@ -25,17 +26,29 @@ def bit2symbol(x, ofdm):
 # Takes array of symbols and turns it into blocks of size N.
 # Will add zeros on the end of the last block if it does not divide nicly. --- need to work on what to add on the end ---
 def cut2Blocks(data, ofdm):
-    if np.shape(data)[0]%int(ofdm.end_bin-ofdm.start_bin-ofdm.num_tones) == 0:
-        return data.reshape(-1,int(ofdm.end_bin-ofdm.start_bin-ofdm.num_tones))
+    if np.shape(data)[0]%int(ofdm.spb) == 0:
+        return data.reshape(-1,int(ofdm.spb))
     else:
-        new_data = np.concatenate((data, np.zeros(ofdm.end_bin-ofdm.start_bin-ofdm.num_tones - np.shape(data)[0]%int(ofdm.end_bin-ofdm.start_bin-ofdm.num_tones))))
-        return new_data.reshape(-1,int(ofdm.end_bin-ofdm.start_bin-ofdm.num_tones))
+        new_data = np.concatenate((data, np.zeros(ofdm.spb - np.shape(data)[0]%int(ofdm.spb))))
+        return new_data.reshape(-1,int(ofdm.spb))
+
 
 def addpilots(data, ofdm):
-    if ofdm.pilot_tones[0] == 0:
-        return data
-    else:
-        pass
+    di = 0
+    pi = 0
+    piloted = np.zeros(ofdm.N // 2 - 1)
+    for i in range(ofdm.pilot_locs[0], ofdm.pilot_locs[-1] + 1):
+        if i in ofdm.pilot_locs:
+            piloted[i] = ofdm.pilot_vals[pi]
+            pi += 1
+        else:
+            piloted[i] = data[di]
+            di += 1
+
+    return piloted
+
+
+
 
 def addpadding(data, ofdm):
     qfsk = np.array(list(ofdm.QFSK_dict.values()))
@@ -52,8 +65,9 @@ def addpadding(data, ofdm):
 def goodSymbols(data_symbols, ofdm):
     symbols = np.zeros((np.shape(data_symbols)[0],ofdm.N), dtype=complex)
     for i in range(len(data_symbols)):
-        symbols[i][1:int(ofdm.N/2)] = data_symbols[i]
-        symbols[i][int(ofdm.N/2)+1:ofdm.N] = np.conjugate(np.flip(data_symbols[i]))
+        piloted = addpilots(data_symbols[i],ofdm)
+        symbols[i][1:int(ofdm.N/2)] = piloted
+        symbols[i][int(ofdm.N/2)+1:ofdm.N] = np.conjugate(np.flip(piloted))
     return symbols
 
 # inverse dft, default numpy, can be chanegd to scipy
@@ -125,3 +139,27 @@ def audioMaker(frame, name, fs):
     audio_for_file = audio_for_file.astype(np.int16)
     write('{}.wav'.format(name), fs, audio_for_file)
     return audio_for_file
+
+
+
+def double_chirp(fs=44100):
+    chirp_time = 1
+    t = np.linspace(0, chirp_time, int(chirp_time * fs), False)
+    note = chirp(t, f0=500, f1=15000, t1=chirp_time, method='linear')
+    note = note*np.hamming(len(note))
+    note = np.concatenate((np.zeros(1500),note,note,np.zeros(1500)))
+    return note / np.max(np.abs(note))
+    
+
+def rand_snc(ofdm):
+    qfsk = np.array(list(ofdm.QFSK_dict.values()))
+    return np.random.choice(qfsk, size=(int(ofdm.N/2-1)), replace=True)
+    ####### to be continueeed
+
+
+def s_n_c(rands, ofdm):
+    cut_symb = cut2Blocks(symb, ofdm)
+    syb_padded = addpadding(cut_symb, ofdm)
+    all_symbs = goodSymbols(syb_padded,ofdm)
+    preamble_array[::2] = 0
+    ####### to be continueeed
