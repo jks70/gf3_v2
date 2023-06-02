@@ -6,7 +6,7 @@ from scipy.fft import fft, ifft
 import simpleaudio as sa
 import sounddevice as sd
 from scipy.io.wavfile import write, read
-
+import scipy
 
 QFSK_dictionary = {
     (1,1) : -1-1j,
@@ -15,7 +15,7 @@ QFSK_dictionary = {
     (0,1) : -1+1j}
 
 
-def decoded_mag_phase(tds, ofdm):
+def pilot_decoded_mag_phase(tds, ofdm):
     fds = fft(tds, int(ofdm.N))
     channel_mags = []
     channel_phases = []
@@ -28,8 +28,8 @@ def decoded_mag_phase(tds, ofdm):
     return np.array(channel_mags), np.array(channel_phases)
 
 
-def channel_estimator(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
-    dcds, angles = decoded_mag_phase(tds, ofdm)
+def pilot_channel_estimator(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
+    dcds, angles = pilot_decoded_mag_phase(tds, ofdm)
     angles = angles % np.pi
     adcd = np.abs(ofdm.pilot_vals)
     aangle = np.angle(ofdm.pilot_vals) % np.pi
@@ -45,8 +45,8 @@ def channel_estimator(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
     return H_est
 
 
-def equaliser(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
-    H_est = channel_estimator(tds, ofdm, interval)
+def pilot_equaliser(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
+    H_est = pilot_channel_estimator(tds, ofdm, interval)
 
     fds = fft(tds, int(ofdm.N))[:int(ofdm.N / 2)]
 
