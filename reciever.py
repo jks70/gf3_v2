@@ -15,6 +15,44 @@ QFSK_dictionary = {
     (0,1) : -1+1j}
 
 
+def decoded_mag_phase(tds, ofdm):
+    fds = fft(tds, int(ofdm.N))
+    channel_mags = []
+    channel_phases = []
+    
+    for i in range(len(fds)):
+        if i in ofdm.pilot_locs:
+            channel_mags.append(np.abs(fds[i]))
+            channel_phases.append(np.angle(fds[i]))
+    
+    return np.array(channel_mags), np.array(channel_phases)
+
+
+def channel_estimator(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
+    dcds, angles = decoded_mag_phase(tds, ofdm)
+    angles = angles % np.pi
+    adcd = np.abs(ofdm.pilot_vals)
+    aangle = np.angle(ofdm.pilot_vals) % np.pi
+
+    mag_fit = scipy.interpolate.CubicSpline(ofdm.pilot_locs, dcds / adcd)
+    ang_fit = scipy.interpolate.CubicSpline(ofdm.pilot_locs, angles - aangle)
+
+    mgf = mag_fit(interval)
+    agf = ang_fit(interval)
+
+    H_est = mgf * np.exp(1j*agf)
+
+    return H_est
+
+
+def equaliser(tds, ofdm, interval = np.linspace(0, 1023, 1024)):
+    H_est = channel_estimator(tds, ofdm, interval)
+
+    fds = fft(tds, int(ofdm.N))[:int(ofdm.N / 2)]
+
+    return fds / H_est
+
+
 
 def deconstruct(aud, ofdm, numpy_func = True, channel_H = None, retSymbs = False):
     N = ofdm.N

@@ -36,17 +36,17 @@ def cut2Blocks(data, ofdm):
 def addpilots(data, ofdm):
     di = 0
     pi = 0
-    piloted = np.zeros(ofdm.N // 2 - 1)
+    plted = np.zeros(ofdm.N // 2 - 1, dtype=complex)
     for i in range(ofdm.pilot_locs[0], ofdm.pilot_locs[-1] + 1):
         # offset of 1 needed for original functioning of goodSymbols to be retained.
         if i in ofdm.pilot_locs:
-            piloted[i-1] = ofdm.pilot_vals[pi]
+            plted[i-1] = ofdm.pilot_vals[pi]
             pi += 1
         else:
-            piloted[i-1] = data[di]
+            plted[i-1] = data[di]
             di += 1
 
-    return piloted
+    return plted
 
 
 
@@ -76,17 +76,17 @@ def goodSymbols(data_symbols, ofdm):
 
 # inverse dft, default numpy, can be chanegd to scipy
 # For some reason the scipy was leaving tiny(e-18) imaginary parts
-def inversedft(freq, numpy_func = True):
+def inversedft(freq, numpy_func = True, N = 2048):
     if numpy_func == True:
         if len(np.shape(freq)) == 1:
-            return np.real(np.fft.ifft(freq))
+            return np.real(np.fft.ifft(freq, N))
         else:
-            return [np.real(np.fft.ifft(x)) for x in freq]
+            return [np.real(np.fft.ifft(x, N)) for x in freq]
     else:
         if len(np.shape(freq)) == 1:
-            return np.real(ifft(freq))
+            return np.real(ifft(freq, N))
         else:
-            return [np.real(ifft(x)) for x in freq]
+            return [np.real(ifft(x, N)) for x in freq]
 
 # Adds the cyclic prefix
 def addGuard(timeDomain, ofdm):
