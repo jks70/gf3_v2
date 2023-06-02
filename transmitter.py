@@ -38,11 +38,12 @@ def addpilots(data, ofdm):
     pi = 0
     piloted = np.zeros(ofdm.N // 2 - 1)
     for i in range(ofdm.pilot_locs[0], ofdm.pilot_locs[-1] + 1):
+        # offset of 1 needed for original functioning of goodSymbols to be retained.
         if i in ofdm.pilot_locs:
-            piloted[i] = ofdm.pilot_vals[pi]
+            piloted[i-1] = ofdm.pilot_vals[pi]
             pi += 1
         else:
-            piloted[i] = data[di]
+            piloted[i-1] = data[di]
             di += 1
 
     return piloted
@@ -66,9 +67,12 @@ def goodSymbols(data_symbols, ofdm):
     symbols = np.zeros((np.shape(data_symbols)[0],ofdm.N), dtype=complex)
     for i in range(len(data_symbols)):
         piloted = addpilots(data_symbols[i],ofdm)
-        symbols[i][1:int(ofdm.N/2)] = piloted
-        symbols[i][int(ofdm.N/2)+1:ofdm.N] = np.conjugate(np.flip(piloted))
+
+        for j in range(1, int(ofdm.N/2)):
+            symbols[i][j] = piloted[j-1]
+            symbols[i][int(ofdm.N)-j] = piloted[j-1]
     return symbols
+
 
 # inverse dft, default numpy, can be chanegd to scipy
 # For some reason the scipy was leaving tiny(e-18) imaginary parts
