@@ -133,8 +133,8 @@ def frameMaker(sync, chan_est, data, data_symb_per_frame, zeros_post_sync=np.emp
 def fullTrans(data, ofdm):
     symb = bit2symbol(data, ofdm)
     cut_symb = cut2Blocks(symb, ofdm)
-    syb_padded = addpadding(cut_symb, ofdm)
-    all_symbs = goodSymbols(syb_padded,ofdm)
+    # syb_padded = addpadding(cut_symb, ofdm)
+    all_symbs = goodSymbols(cut_symb,ofdm)
     return addGuard(inversedft(all_symbs), ofdm)
 
 def audioMaker(frame, name, fs):
