@@ -65,7 +65,7 @@ def addpadding(data, ofdm):
 # Takes the blocks of symbols and adds the mirrored conjugate onto the end of the blocks
 def goodSymbols(data_symbols, ofdm):
     symbols = np.zeros((np.shape(data_symbols)[0],ofdm.N), dtype=complex)
-    for i in range(len(data_symbols)):
+    for i in range(symbols.shape[0]):
         piloted = addpilots(data_symbols[i],ofdm)
 
         for j in range(1, int(ofdm.N/2)):
@@ -78,24 +78,14 @@ def goodSymbols(data_symbols, ofdm):
 # For some reason the scipy was leaving tiny(e-18) imaginary parts
 def inversedft(freq, numpy_func = True, N = 2048):
     if numpy_func == True:
-        if len(np.shape(freq)) == 1:
-            return np.real(np.fft.ifft(freq, N))
-        else:
-            return [np.real(np.fft.ifft(x, N)) for x in freq]
+        return np.real(np.fft.ifft(freq, N))
     else:
-        if len(np.shape(freq)) == 1:
-            return np.real(ifft(freq, N))
-        else:
-            return [np.real(ifft(x, N)) for x in freq]
+        return np.real(ifft(freq, N))
 
 # Adds the cyclic prefix
 def addGuard(timeDomain, ofdm):
-    full_block = np.zeros((np.shape(timeDomain)[0],ofdm.N+ofdm.CP))
-    for j in range(len(timeDomain)):
-        full_block[j][0:ofdm.CP] = timeDomain[j][-ofdm.CP:]
-        full_block[j][ofdm.CP:ofdm.CP+ofdm.N] = timeDomain[j]
-    
-    return full_block
+    print(ofdm.CP)
+    return np.hstack((timeDomain[:,-ofdm.CP:], timeDomain))
 
 def bitsFromTiff(image_name):
     # Open image
@@ -135,7 +125,8 @@ def fullTrans(data, ofdm):
     cut_symb = cut2Blocks(symb, ofdm)
     # syb_padded = addpadding(cut_symb, ofdm)
     all_symbs = goodSymbols(cut_symb,ofdm)
-    return addGuard(inversedft(all_symbs), ofdm)
+    tds = ifft(all_symbs, 2048)
+    return addGuard(tds, ofdm)
 
 def audioMaker(frame, name, fs):
     audio = frame.flatten() / np.max(np.abs(frame.flatten()))

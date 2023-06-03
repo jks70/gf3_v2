@@ -133,4 +133,50 @@ def record(timeofrec,fs,filename):
     myrecording = sd.rec(int(timeofrec * fs))
     sd.wait()  # Wait until recording is finished
 
-    write('{}.wav'.format(filename), fs, myrecording)  # Save as WAV file 
+    write('{}.wav'.format(filename), fs, myrecording)  # Save as WAV file
+
+
+def extractor(symbols, ofdm):
+    indices = [i for i in range(ofdm.pilot_locs[0], ofdm.pilot_locs[-1]) if i not in ofdm.pilot_locs]
+    return symbols[:,indices]
+
+
+def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
+    N = ofdm.N
+    L = ofdm.CP
+    QFSK_dict  = ofdm.QFSK_dict
+    backwards_dict = {v : k for k, v in QFSK_dict.items()}
+
+    bits_organised = aud.reshape((-1, L+N))
+
+    cut_bits = bits_organised[:,L:]
+
+    freq_data = fft(cut_bits)
+
+    # symbols = freq_data[:,1:int(N/2)]
+
+    # equalisation
+
+    if channel_H is None:
+        pass
+    else:
+        freq_data = freq_data / channel_H
+
+    symbols = extractor(freq_data, ofdm)
+
+    soliddata=[]
+    for i in symbols:
+        for j in i:
+            if j.real > 0 and j.imag > 0:
+                soliddata.extend([backwards_dict[1+1j][0],backwards_dict[1+1j][1]])
+            elif j.real < 0 and j.imag > 0:
+                soliddata.extend([backwards_dict[-1+1j][0],backwards_dict[-1+1j][1]])
+            elif j.real > 0 and j.imag < 0:
+                soliddata.extend([backwards_dict[1-1j][0],backwards_dict[1-1j][1]])
+            else:
+                soliddata.extend([backwards_dict[-1-1j][0],backwards_dict[-1-1j][1]])
+
+    if retSymbs == True:
+        return np.array(soliddata), symbols
+    else:
+        return np.array(soliddata)
