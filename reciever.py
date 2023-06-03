@@ -1,5 +1,6 @@
 # First iteration of a reciever to be used as a library
 
+import ldpc_jossy.py.ldpc as ldpc
 import numpy as np
 from PIL import Image
 from scipy.fft import fft, ifft
@@ -7,6 +8,7 @@ import simpleaudio as sa
 import sounddevice as sd
 from scipy.io.wavfile import write, read
 import scipy
+from transmitter import LDPC
 
 QFSK_dictionary = {
     (1,1) : -1-1j,
@@ -89,6 +91,9 @@ def deconstruct(aud, ofdm, numpy_func = True, channel_H = None, retSymbs = False
             else:
                 soliddata.extend([backwards_dict[-1-1j][0],backwards_dict[-1-1j][1]])
 
+    # ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
+    # decoded = ldpc.encode(soliddata)
+    
     if retSymbs == True:
         return np.array(soliddata), symbols
     else:
@@ -176,7 +181,10 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
             else:
                 soliddata.extend([backwards_dict[-1-1j][0],backwards_dict[-1-1j][1]])
 
+    ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
+    decoded = ldpc.decode(np.array(soliddata))
+    
     if retSymbs == True:
-        return np.array(soliddata), symbols
+        return np.array(decoded), symbols
     else:
-        return np.array(soliddata)
+        return np.array(decoded)

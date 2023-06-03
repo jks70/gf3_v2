@@ -1,6 +1,7 @@
 # First iteration of functional transmitter to be used as a library
 
 
+import ldpc_jossy.py.ldpc as ldpc
 import numpy as np
 import simpleaudio as sa
 from scipy.signal import chirp
@@ -16,6 +17,23 @@ QFSK_dictionary = {
     (1,0) :  1-1j,
     (0,0) :  1+1j,
     (0,1) : -1+1j}
+
+class LDPC:
+    def __init__(self, rate, z) -> None:
+        self.rate = rate
+        self.z = z
+        self.coder = ldpc.code(rate = rate, z = z)
+
+    def encode(self, bin_seq):
+        Y = self.coder.pcmat().shape[0]
+        remainder = Y - (len(bin_seq) % Y)
+        coerced = np.concatenate((bin_seq, np.zeros(remainder)))
+        coerced = coerced.reshape(-1, self.coder.pcmat().shape[0])
+        return np.array([self.coder.encode(c) for c in coerced])
+
+    def decode(self, bin_seq):
+        recoerced = bin_seq.reshape(-1, self.coder.pcmat().shape[1])
+        return np.array([self.coder.decode(rc)[0] for rc in recoerced])
 
 
 # Takes an array of bits and converts it to a 1d array of symbols
@@ -121,7 +139,13 @@ def frameMaker(sync, chan_est, data, data_symb_per_frame, zeros_post_sync=np.emp
 
 
 def fullTrans(data, ofdm):
-    symb = bit2symbol(data, ofdm)
+
+    # ldpc implementation
+    ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
+    ldpc_ified = ldpc.encode(data)
+    
+    symb = bit2symbol(ldpc_ified, ofdm)
+
     cut_symb = cut2Blocks(symb, ofdm)
     # syb_padded = addpadding(cut_symb, ofdm)
     all_symbs = goodSymbols(cut_symb,ofdm)
