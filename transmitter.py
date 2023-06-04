@@ -33,7 +33,7 @@ class LDPC:
 
     def decode(self, bin_seq):
         recoerced = bin_seq.reshape(-1, self.coder.pcmat().shape[1])
-        return np.array([self.coder.decode(rc)[0] for rc in recoerced])
+        return np.array([self.coder.decode(rc)[0] for rc in recoerced])[:,:self.coder.K]
 
 
 # Takes an array of bits and converts it to a 1d array of symbols
