@@ -91,7 +91,7 @@ def goodSymbols(data_symbols, ofdm):
 
         for j in range(1, int(ofdm.N/2)):
             symbols[i][j] = piloted[j-1]
-            symbols[i][int(ofdm.N)-j] = piloted[j-1]
+            symbols[i][int(ofdm.N)-j] = np.conjugate(piloted[j-1])
     return symbols
 
 
@@ -152,7 +152,7 @@ def fullTrans(data, ofdm):
     cut_symb = cut2Blocks(symb, ofdm)
     # syb_padded = addpadding(cut_symb, ofdm)
     all_symbs = goodSymbols(cut_symb,ofdm)
-    tds = ifft(all_symbs, 2048)
+    tds = np.real(ifft(all_symbs, 2048))
     return addGuard(tds, ofdm)
 
 def audioMaker(frame, name, fs):
@@ -194,8 +194,8 @@ def CUSTARD(payload,ofdm):
 
     transmission = np.concatenate((chirp,four_snc))
     for i in range(len(payload)//ofdm.sfp):
-        transmission = np.concatenate((transmission, payload[i*60:60*i+60], two_snc))
+        transmission = np.concatenate((transmission, payload[i*60:60*i+60].flatten(), two_snc))
     if len(payload)%ofdm.sfp != 0:
-        transmission = np.concatenate((transmission, payload[-len(payload)%ofdm.sfp:], chirp))
+        transmission = np.concatenate((transmission, payload[-len(payload)%ofdm.sfp:].flatten(), chirp))
     
     return transmission
