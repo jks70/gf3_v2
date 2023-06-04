@@ -145,6 +145,9 @@ def extractor(symbols, ofdm):
     indices = [i for i in range(ofdm.pilot_locs[0], ofdm.pilot_locs[-1]) if i not in ofdm.pilot_locs]
     return symbols[:,indices]
 
+def snc_extractor(symbols):
+    return symbols[[i for i in range(0,len(symbols)) if (i ==0 or i== 1) or i % 60 != 0 and (i-1)%60 != 0]]
+
 
 def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
     N = ofdm.N
@@ -154,7 +157,9 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
 
     bits_organised = aud.reshape((-1, L+N))
 
-    cut_bits = bits_organised[:,L:]
+    snc_removed = snc_extractor(bits_organised)
+
+    cut_bits = snc_removed[:,L:]
 
     freq_data = fft(cut_bits)
 
@@ -181,10 +186,13 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
             else:
                 soliddata.extend([backwards_dict[-1-1j][0],backwards_dict[-1-1j][1]])
 
-    coder = LDPC(rate = ofdm.rate, z = ofdm.z)
-    decoded = coder.decode(np.array(soliddata))
+    if ldpc_encoded ==True:
+        coder = LDPC(rate = ofdm.rate, z = ofdm.z)
+        decoded = coder.decode(np.array(soliddata))
 
-    decoded = np.int64(decoded).flatten()
+        decoded = np.int64(decoded).flatten()
+    else:
+        decoded = np.array(soliddata)
     
     if retSymbs == True:
         return decoded, symbols
