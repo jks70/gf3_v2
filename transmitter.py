@@ -32,10 +32,15 @@ class LDPC:
         return np.array([self.coder.encode(c) for c in coerced])
 
     def decode(self, bin_seq):
+        bin_seq = bin_seq.flatten()
+        bin_seq = bin_seq[:-(len(bin_seq) % self.coder.N)]
+        print(bin_seq.shape)
         recoerced = bin_seq.reshape(-1, self.coder.pcmat().shape[1])
+        recoerced = 10 * (0.5 - recoerced)
         stepper = np.array([self.coder.decode(rc)[0] for rc in recoerced])[:,:self.coder.K]
-        stepper[stepper == -5] = 1.
-        stepper[stepper == 5] = -1.
+        stepper[stepper == -5] = int(1)
+        stepper[stepper == 5] = int(0)
+        print(stepper)
         return stepper
 
 

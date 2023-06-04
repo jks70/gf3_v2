@@ -183,11 +183,13 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
 
     coder = LDPC(rate = ofdm.rate, z = ofdm.z)
     decoded = coder.decode(np.array(soliddata))
+
+    decoded = np.int64(decoded).flatten()
     
     if retSymbs == True:
-        return np.array(decoded), symbols
+        return decoded, symbols
     else:
-        return np.array(decoded)
+        return decoded
     
 def SchmidlCoxDecoder(audio,ofdm):
     dest = np.arange(0, len(audio))
