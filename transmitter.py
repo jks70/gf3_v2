@@ -182,3 +182,17 @@ def s_n_c(rands, ofdm):
     all_symbs = goodSymbols(syb_padded,ofdm)
     preamble_array[::2] = 0
     ####### to be continueeed
+
+def CUSTARD(payload,ofdm):
+    chirp = double_chirp().flatten()
+    exported_even, exported_odd = np.loadtxt('preamble_ofdm_symbols.csv',delimiter=',')
+    two_snc = np.concatenate((exported_even, exported_odd)).flatten()
+    four_snc = np.concatenate((two_snc, two_snc)).flatten()
+
+    transmission = np.concatenate((chirp,four_snc))
+    for i in range(len(payload)//ofdm.sfp):
+        transmission = np.concatenate((transmission, payload[i*60:60*i+60], two_snc))
+    if len(payload)%ofdm.sfp != 0:
+        transmission = np.concatenate((transmission, payload[-len(payload)%ofdm.sfp:], chirp))
+    
+    return transmission
