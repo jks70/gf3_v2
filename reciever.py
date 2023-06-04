@@ -149,7 +149,7 @@ def snc_extractor(symbols):
     return symbols[[i for i in range(0,len(symbols)) if (i ==0 or i== 1) or i % 60 != 0 and (i-1)%60 != 0]]
 
 
-def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
+def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_encoded = True):
     N = ofdm.N
     L = ofdm.CP
     QFSK_dict  = ofdm.QFSK_dict

@@ -146,11 +146,13 @@ def frameMaker(sync, chan_est, data, data_symb_per_frame, zeros_post_sync=np.emp
 
 
 
-def fullTrans(data, ofdm):
-
-    # ldpc implementation
-    ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
-    ldpc_ified = ldpc.encode(data)
+def fullTrans(data, ofdm, ldpc_encode = True):
+    if ldpc_encode == True:
+        # ldpc implementation
+        ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
+        ldpc_ified = ldpc.encode(data)
+    else:
+        ldpc_ified = data
     
     symb = bit2symbol(ldpc_ified, ofdm)
 
