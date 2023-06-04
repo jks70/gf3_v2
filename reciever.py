@@ -146,7 +146,13 @@ def extractor(symbols, ofdm):
     return symbols[:,indices]
 
 def snc_extractor(symbols):
-    return symbols[[i for i in range(0,len(symbols)) if (i ==0 or i== 1) or i % 60 != 0 and (i-1)%60 != 0]]
+    l = symbols.shape[0]
+    a1 = np.arange(60, l, 62)
+    a2 = np.arange(61, l, 62)
+    at = np.concatenate((a1,a2))
+    sc_indices = [i for i in range(l) if i not in at] 
+
+    return symbols[sc_indices]
 
 
 def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_encoded = True):
@@ -163,7 +169,7 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_e
 
     freq_data = fft(cut_bits)
 
-    # symbols = freq_data[:,1:int(N/2)]
+    # symbols = freq_data[:,1:int(N/2)]
 
     # equalisation
 
