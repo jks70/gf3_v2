@@ -188,3 +188,20 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
         return np.array(decoded), symbols
     else:
         return np.array(decoded)
+    
+def SchmidlCoxDecoder(audio,ofdm):
+    dest = np.arange(0, len(audio))
+    P1 = np.zeros(len(dest), dtype=complex)
+    for i, d in enumerate(dest):
+        P1[i] = sum(audio[d+m].conj()*audio[d+m+int(ofdm.N//2)] for m in range(int(ofdm.N//2))) 
+    
+    R = np.zeros(len(dest))
+    for i, d in enumerate(dest):
+        R[i] = sum(abs(audio[d+m+int(ofdm.N//2)])**2 for m in range(int(ofdm.N//2)))
+
+    M = abs(P1)**2/R**2
+
+    b_toPeak = np.ones(ofdm.CP) / ofdm.CP
+    a = (1,)
+    M_filt = scipy.signal.lfilter(b_toPeak, a, M)
+    return M_filt
