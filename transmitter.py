@@ -33,12 +33,19 @@ class LDPC:
 
     def decode(self, bin_seq):
         bin_seq = bin_seq.flatten()
-        bin_seq = bin_seq[:-(len(bin_seq) % self.coder.N)]
+        print(bin_seq.shape)
+        print(len(bin_seq)-(len(bin_seq) % self.coder.N))
+        bin_seq = bin_seq[:len(bin_seq)-(len(bin_seq) % self.coder.N)]
+        print(bin_seq.shape)
         recoerced = bin_seq.reshape(-1, self.coder.pcmat().shape[1])
         recoerced = 10 * (0.5 - recoerced)
         stepper = np.array([self.coder.decode(rc)[0] for rc in recoerced])[:,:self.coder.K]
-        stepper[stepper < 0] = int(1)
-        stepper[stepper > 0] = int(0)
+        for i in range(len(stepper)):
+            for j in range(len(stepper[0])):
+                if stepper[i][j] < 0:
+                    stepper[i][j] = 1
+                else:
+                    stepper[i][j] = 0
         return stepper
 
 
