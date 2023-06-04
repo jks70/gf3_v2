@@ -181,8 +181,8 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False):
             else:
                 soliddata.extend([backwards_dict[-1-1j][0],backwards_dict[-1-1j][1]])
 
-    ldpc = LDPC(rate = ofdm.rate, z = ofdm.z)
-    decoded = ldpc.decode(np.array(soliddata))
+    coder = LDPC(rate = ofdm.rate, z = ofdm.z)
+    decoded = coder.decode(np.array(soliddata))
     
     if retSymbs == True:
         return np.array(decoded), symbols
