@@ -179,7 +179,7 @@ def audioMaker(frame, name, fs):
 def double_chirp(fs=44100):
     chirp_time = 1
     t = np.linspace(0, chirp_time, int(chirp_time * fs), False)
-    note = chirp(t, f0=500, f1=15000, t1=chirp_time, method='linear')
+    note = chirp(t, f0=250, f1=20000, t1=chirp_time, method='linear')
     note = note*np.hamming(len(note))
     note = np.concatenate((np.zeros(1500),note,note,np.zeros(1500)))
     return note / np.max(np.abs(note))
