@@ -181,7 +181,7 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_e
         freq_data = freq_data / channel_H
 
     symbols = extractor(freq_data, ofdm)
-    
+
     if add_rotate is not None:
         symbols = symbols * np.exp(add_rotate)
 
@@ -289,10 +289,19 @@ def chirpEnds(signal, note=None, graph_display=False):
 
     norm_signal =  signal/np.max(signal)
     peka = scipy.signal.find_peaks(norm_signal, 0.5)[0]
-    start_search1 = peka[0]-10000
+    if peka[0] <= 10000:
+        start_search1 = 0
+    else:
+        start_search1 = peka[0]-10000
     end_search1 = start_search1 + 100000
-    end_search2 = peka[-1]+25000
+
+    if len(norm_signal) - peka[-1] <= 25000:
+        end_search2 = len(norm_signal)-1
+    else:
+        end_search2 = peka[-1]+25000
     start_search2 = end_search2 - 100000
+
+    print(peka[-1],start_search2,end_search2,len(signal),start_search1,end_search1)
 
     delay_guess1 = np.abs(np.correlate(signal[start_search1:end_search1], note, mode='full'))
     delay_guess2 = np.abs(np.correlate(signal[start_search2:end_search2], note, mode='full'))
