@@ -208,8 +208,8 @@ def CUSTARD(payload,ofdm):
     for i in range(len(payload)//ofdm.sfp):
         transmission = np.concatenate((transmission, payload[i*60:60*i+60].flatten(), two_snc))
     if len(payload)%ofdm.sfp != 0:
-        transmission = np.concatenate((transmission, payload[-(len(payload)%ofdm.sfp):].flatten(), chirp))
+        transmission = np.concatenate((transmission, payload[-(len(payload)%ofdm.sfp):].flatten(), four_snc, chirp))
     else:
-        transmission = np.concatenate((transmission, chirp))
+        transmission = np.concatenate((transmission, four_snc, chirp))
     
     return transmission

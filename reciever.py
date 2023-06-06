@@ -157,7 +157,7 @@ def snc_extractor(symbols):
     return symbols[sc_indices]
 
 
-def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_encoded = True):
+def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_encoded = True, add_rotate=None):
     N = ofdm.N
     L = ofdm.CP
     QFSK_dict  = ofdm.QFSK_dict
@@ -181,6 +181,9 @@ def standard_deconstructor(aud, ofdm, channel_H = None, retSymbs = False, ldpc_e
         freq_data = freq_data / channel_H
 
     symbols = extractor(freq_data, ofdm)
+    
+    if add_rotate is not None:
+        symbols = symbols * np.exp(add_rotate)
 
     soliddata=[]
     for i in symbols:
@@ -288,7 +291,7 @@ def chirpEnds(signal, note=None, graph_display=False):
     peka = scipy.signal.find_peaks(norm_signal, 0.5)[0]
     start_search1 = peka[0]-10000
     end_search1 = start_search1 + 100000
-    end_search2 = peka[-1]+20000
+    end_search2 = peka[-1]+25000
     start_search2 = end_search2 - 100000
 
     delay_guess1 = np.abs(np.correlate(signal[start_search1:end_search1], note, mode='full'))
@@ -323,3 +326,20 @@ def chirpEnds(signal, note=None, graph_display=False):
 
 
     return [end_first_chirp,end_second_chirp, end_third_chirp, end_fourth_chirp]
+
+def decode_header(bits_in):
+    lst = [str(i) for i in bits_in[:7*8*3]]
+    out = [int(''.join(map(str, lst[i:i+8])),2) for i in range(0, len(lst), 8)]
+    bytes_in = bytearray(out)
+
+    verified_header=b''
+    for i in range(7):
+        if bytes_in[i] == bytes_in[i+7] or bytes_in[i] == bytes_in[i+14]:
+            verified_header += bytes_in[i].to_bytes(1, byteorder='big')
+        elif bytes_in[i+7] == bytes_in[i+14]:
+            verified_header += bytes_in[i+7].to_bytes(1, byteorder='big')
+        else:
+            raise ValueError("There are too many errors in the input header")
+    filetype = '.' + verified_header[0:4].strip(b'\x00').decode('utf-8')
+    filesize = int.from_bytes(verified_header[4:7], 'big')
+    return filetype, filesize
