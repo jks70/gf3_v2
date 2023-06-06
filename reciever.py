@@ -9,6 +9,8 @@ import sounddevice as sd
 from scipy.io.wavfile import write, read
 import scipy
 from transmitter import LDPC
+import matplotlib.pyplot as plt
+from scipy.signal import chirp
 
 QFSK_dictionary = {
     (1,1) : -1-1j,
@@ -221,3 +223,103 @@ def SchmidlCoxDecoder(audio,ofdm):
     a = (1,)
     M_filt = scipy.signal.lfilter(b_toPeak, a, M)
     return M_filt
+
+
+def channelEstimate(four_known_symbols, ofdm):
+
+    even_one = four_known_symbols[:ofdm.N+ofdm.CP]
+    odd_one = four_known_symbols[ofdm.N+ofdm.CP:2*(ofdm.N+ofdm.CP)]
+    even_two = four_known_symbols[2*(ofdm.N+ofdm.CP):3*(ofdm.N+ofdm.CP)]
+    odd_two = four_known_symbols[3*(ofdm.N+ofdm.CP):4*(ofdm.N+ofdm.CP)]
+    odd_index = np.arange(0,741,2)
+    even_index=np.arange(1,741,2)
+
+    exported_coding = np.loadtxt('preamble_qpsk_symbols.csv', delimiter=',',dtype=complex)
+    exported_coding *= 1.41421356474619
+
+    hes_e1 = (fft(even_one[ofdm.CP:], 2048)).flatten()[49:790] / exported_coding.flatten()
+    hes_o1 = (fft(odd_one[ofdm.CP:], 2048)).flatten()[49:790] / exported_coding.flatten()
+    hes_e2 = (fft(even_two[ofdm.CP:], 2048)).flatten()[49:790] / exported_coding.flatten()
+    hes_o2 = (fft(odd_two[ofdm.CP:], 2048)).flatten()[49:790] / exported_coding.flatten()
+    
+    hest_one = np.zeros(741, dtype='complex')
+    hest_one[even_index] = hes_e1[even_index]
+    hest_one[odd_index] = hes_o1[odd_index]
+
+    hest_two = np.zeros(741, dtype='complex')
+    hest_two[even_index] = hes_e2[even_index]
+    hest_two[odd_index] = hes_o2[odd_index]
+
+
+    return hest_one, hest_two
+
+
+def chanest_padd(hest,ofdm):
+    full_size = np.ones(ofdm.N, dtype='complex')
+    full_size[49:790] = hest
+    return full_size
+
+def error_(data1,data_correct):
+    errs = 0
+    for i in range(len(data_correct)):
+        if data_correct[i] != data1[i]:
+            errs += 1
+    return 100*errs/len(data_correct)
+
+def errorss(decod, bit_array):
+    code_length = len(bit_array)
+    error_by_block = []
+    n=720*2
+    for i in range(0,code_length,n):
+        error_by_block.append(error_(decod[i:i+n],bit_array[i:i+n]))
+    return error_by_block
+
+
+def chirpEnds(signal, note=None, graph_display=False):
+
+    if note is None:
+        chirp_time = 1
+        fs =44100
+        t = np.linspace(0, chirp_time, int(chirp_time * fs), False)
+        note = chirp(t, f0=250, f1=20000, t1=chirp_time, method='linear')
+        note = note*np.hamming(len(note))
+
+    norm_signal =  signal/np.max(signal)
+    peka = scipy.signal.find_peaks(norm_signal, 0.5)[0]
+    start_search1 = peka[0]-10000
+    end_search1 = start_search1 + 100000
+    end_search2 = peka[-1]+20000
+    start_search2 = end_search2 - 100000
+
+    delay_guess1 = np.abs(np.correlate(signal[start_search1:end_search1], note, mode='full'))
+    delay_guess2 = np.abs(np.correlate(signal[start_search2:end_search2], note, mode='full'))
+
+    delay_guess_norm1 = delay_guess1/np.max(delay_guess1)
+    delay_guess_norm2 = delay_guess2/np.max(delay_guess2)
+
+    peaks_1 = scipy.signal.find_peaks(delay_guess_norm1, 0.5, distance = 3000)
+    peaks_2 = scipy.signal.find_peaks(delay_guess_norm2, 0.5, distance = 3000)
+
+    end_first_chirp = peaks_1[0][0]+start_search1
+    end_second_chirp = peaks_1[0][1]+start_search1
+    end_third_chirp = peaks_2[0][0]+start_search2
+    end_fourth_chirp = peaks_2[0][1]+start_search2
+    
+    if graph_display == True:
+        plt.figure(figsize = (30, 10))
+        plt.plot(signal)
+        plt.axvline(x = start_search1 , color = 'grey',linestyle = '-', label='start_search')
+        plt.axvline(x = end_search1 , color = 'grey',linestyle = '--', label='end_search')
+        plt.axvline(x = start_search2 , color = 'grey',linestyle = '-', label='start_search')
+        plt.axvline(x = end_search2 , color = 'grey',linestyle = '--', label='end_search')
+
+        plt.axvline(x = end_first_chirp , color = 'r', label='end_first_chirp')
+        plt.axvline(x = end_second_chirp , color = 'b', label='end_second_chirp')
+        plt.axvline(x = end_third_chirp , color = 'r', label='end_third_chirp')
+        plt.axvline(x = end_fourth_chirp , color = 'b', label='end_fourth_chirp')
+
+        plt.legend()
+        plt.show()
+
+
+    return [end_first_chirp,end_second_chirp, end_third_chirp, end_fourth_chirp]
