@@ -174,7 +174,13 @@ def audioMaker(frame, name, fs):
     write('{}.wav'.format(name), fs, audio_for_file)
     return audio_for_file
 
-
+def gen_header(filename, filesize):
+    filetype = filename.split('.')[-1]
+    if len(filetype) > 4:
+        raise ValueError(f"File extension .{filetype} is greater than 4 characters long")
+    if filesize > 2**24-1:
+        raise ValueError("Filesize too large")
+    return 3 * bytearray(bytearray(filetype,'utf-8').ljust(4, b'\x00') + int(filesize).to_bytes(length=3))
 
 def double_chirp(fs=44100):
     chirp_time = 1
